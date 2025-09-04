@@ -16,6 +16,11 @@ android {
         versionCode rootProject.ext.android.versionCode
         versionName rootProject.ext.android.versionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Expose TikTok API key from gradle.properties into BuildConfig
+        def tiktokKey = project.hasProperty("TIKTOK_API_KEY") ? TIKTOK_API_KEY : "__REPLACE_WITH_YOUR_TIKTOK_API_KEY__"
+        buildConfigField "String", "TIKTOK_API_KEY", "\"${tiktokKey}\""
+        resValue "string", "tiktok_api_key", "${tiktokKey}"
     }
     buildTypes {
         debug {

@@ -67,3 +67,21 @@
 
 个人温馨提示：
 刷抖音时能带给你短暂的愉悦感，但如果长期沉迷于刷抖音，甚至会熬夜刷抖音，晚睡晚起，会使自己碎片化时间无法被利用，心情浮躁，专注力下降。你可以网络段子张口就来，明星网红关注比谁都多，但是个人认知水平并没有提高，我说的是不是你？沉下心来学习专业技能，才是我们最应该做的。
+
+---
+
+添加 TikTok API Key
+
+为了安全地使用 TikTok API Key（或任意 API Key），仓库已配置以下方式：
+- 在 gradle.properties 定义本地变量 TIKTOK_API_KEY（不要提交真实值到仓库）。
+- 在 app/build.gradle 会把 TIKTOK_API_KEY 暴露为 BuildConfig.TIKTOK_API_KEY 以及资源字符串 R.string.tiktok_api_key。
+- 代码中请使用 BuildConfig.TIKTOK_API_KEY，避免硬编码。
+
+步骤：
+1) 在项目根目录的 gradle.properties 设置（仅本地）：
+   TIKTOK_API_KEY=your_real_key_here
+
+2) 同步 Gradle 并在代码中读取：
+   val apiKey = BuildConfig.TIKTOK_API_KEY
+
+提示：当前默认值是占位符 __REPLACE_WITH_YOUR_TIKTOK_API_KEY__，请在本地替换为真实值。
