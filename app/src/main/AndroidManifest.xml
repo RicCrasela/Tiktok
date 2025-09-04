@@ -44,6 +44,28 @@
             android:exported="false"
             android:screenOrientation="portrait" />
 
+        <!-- TikTok OAuth callback receiver -->
+        <activity
+            android:name=".tiktok.TikTokAuthCallbackActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <!-- Default custom scheme; update to match your TikTok developer console -->
+                <data
+                    android:scheme="com.bytedance.tiktok"
+                    android:host="tiktok-auth" />
+            </intent-filter>
+        </activity>
+
+        <!-- Query for TikTok app for sharing (Android 11+ package visibility) -->
+        <queries>
+            <package android:name="com.zhiliaoapp.musically" />
+            <package android:name="com.ss.android.ugc.trill" />
+        </queries>
+
     </application>
 
 </manifest>
