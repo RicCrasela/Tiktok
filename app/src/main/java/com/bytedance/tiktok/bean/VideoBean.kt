@@ -13,6 +13,9 @@ class VideoBean {
     /** 视频播放资源  */
     var videoRes = ""
 
+    /** 是否为图片内容（非视频） */
+    var isPhoto = false
+
     /** 封面图片资源  */
     var coverRes = 0
 

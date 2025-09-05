@@ -2,6 +2,7 @@
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/splash_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".activity.SplashActivity"
@@ -12,4 +13,17 @@
         android:layout_height="160dp"
         android:background="@mipmap/logo"
         android:layout_centerInParent="true"/>
+
+    <!-- Explicit TikTok Login button for preview/testing -->
+    <TextView
+        android:id="@+id/btnLoginTikTok"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Login dengan TikTok"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:padding="12dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="48dp"/>
 </RelativeLayout>

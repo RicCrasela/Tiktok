@@ -1,14 +1,22 @@
 package com.bytedance.tiktok.fragment
 
+import android.app.Activity
+import android.content.ContentResolver
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.provider.OpenableColumns
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.RelativeLayout.LayoutParams
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
+import com.bumptech.glide.Glide
 import com.bytedance.tiktok.R
 import com.bytedance.tiktok.activity.PlayListActivity
 import com.bytedance.tiktok.adapter.VideoAdapter
@@ -17,18 +25,21 @@ import com.bytedance.tiktok.bean.CurUserBean
 import com.bytedance.tiktok.bean.DataCreate
 import com.bytedance.tiktok.bean.MainPageChangeEvent
 import com.bytedance.tiktok.bean.PauseVideoEvent
+import com.bytedance.tiktok.bean.VideoBean
 import com.bytedance.tiktok.databinding.FragmentRecommendBinding
+import com.bytedance.tiktok.player.VideoPlayer
 import com.bytedance.tiktok.utils.OnVideoControllerListener
 import com.bytedance.tiktok.utils.RxBus
 import com.bytedance.tiktok.view.CommentDialog
 import com.bytedance.tiktok.view.ControllerView
-import com.bytedance.tiktok.player.VideoPlayer
 import com.bytedance.tiktok.view.LikeView
 import com.bytedance.tiktok.view.ShareDialog
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
 import rx.Subscription
 import rx.functions.Action1
+import java.io.File
+import java.io.FileOutputStream
 
 
 /**
@@ -46,6 +57,68 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
     private var ivCurCover: ImageView? = null
     private var subscribe: Subscription?= null
 
+    private val pickMedia = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val dataUri: Uri? = result.data?.data
+            dataUri?.let { uri ->
+                val type = requireContext().contentResolver.getType(uri) ?: ""
+                val isPhoto = type.startsWith("image/")
+                val cachedFile = copyToCache(uri)
+                if (cachedFile != null) {
+                    setUploading(true)
+                    // Upload to Firebase and then refresh feed
+                    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            val post = com.bytedance.tiktok.utils.FirebaseUploadRepository.uploadPost(Uri.fromFile(cachedFile), isPhoto, if (isPhoto) "Photo post" else "Video post")
+                            // Map to local bean and insert at top
+                            val bean = VideoBean().apply {
+                                videoId = post.id.hashCode()
+                                videoRes = post.mediaUrl
+                                this.isPhoto = post.isPhoto
+                                userBean = DataCreate.userList.firstOrNull() ?: VideoBean.UserBean().apply {
+                                    uid = 999
+                                    nickName = "User"
+                                    head = com.bytedance.tiktok.R.mipmap.head1
+                                }
+                                content = post.content
+                                likeCount = 0
+                                commentCount = 0
+                                shareCount = 0
+                            }
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                DataCreate.datas.add(0, bean)
+                                adapter?.submitList(mutableListOf<VideoBean>().apply { addAll(DataCreate.datas) })
+                                binding.recyclerView.setCurrentItem(0, false)
+                                showToast("Upload selesai")
+                                setUploading(false)
+                            }
+                        } catch (_: Exception) {
+                            // On failure fallback to local add
+                            val bean = VideoBean().apply {
+                                videoId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+                                videoRes = cachedFile.toURI().toString()
+                                this.isPhoto = isPhoto
+                                userBean = DataCreate.userList.firstOrNull() ?: VideoBean.UserBean().apply {
+                                    uid = 999
+                                    nickName = "User"
+                                    head = com.bytedance.tiktok.R.mipmap.head1
+                                }
+                                content = if (isPhoto) "Photo post" else "Video post"
+                            }
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                DataCreate.datas.add(0, bean)
+                                adapter?.submitList(mutableListOf<VideoBean>().apply { addAll(DataCreate.datas) })
+                                binding.recyclerView.setCurrentItem(0, false)
+                                showToast("Upload gagal, ditambahkan lokal")
+                                setUploading(false)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -54,6 +127,57 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
         setViewPagerLayoutManager()
         setRefreshEvent()
         observeEvent()
+
+        binding.btnPost.setOnClickListener {
+            openMediaPicker()
+        }
+
+        // Optional: on first load, try to fetch latest posts from Firestore and prepend
+        // We will not block UI if Firebase not configured.
+        tryFetchRemote()
+    }
+
+    private fun openMediaPicker() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*","video/*"))
+        }
+        pickMedia.launch(intent)
+    }
+
+    private fun copyToCache(uri: Uri): File? {
+        return try {
+            val cr: ContentResolver = requireContext().contentResolver
+            val name = queryDisplayName(uri) ?: "post_${System.currentTimeMillis()}"
+            val ext = when {
+                name.contains('.', ignoreCase = true) -> name.substring(name.lastIndexOf('.'))
+                (cr.getType(uri) ?: "").startsWith("image/") -> ".jpg"
+                (cr.getType(uri) ?: "").startsWith("video/") -> ".mp4"
+                else -> ""
+            }
+            val outFile = File(requireContext().cacheDir, "post_${System.currentTimeMillis()}$ext")
+            cr.openInputStream(uri)?.use { input ->
+                FileOutputStream(outFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            outFile
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun queryDisplayName(uri: Uri): String? {
+        val cr = requireContext().contentResolver
+        val cursor = cr.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val idx = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (idx >= 0) return it.getString(idx)
+            }
+        }
+        return null
     }
 
     private fun initRecyclerView() {
@@ -104,13 +228,20 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
     private fun setRefreshEvent() {
         binding.refreshLayout.setColorSchemeResources(R.color.color_link)
         binding.refreshLayout.setOnRefreshListener {
-            object : CountDownTimer(1000, 1000) {
-                override fun onTick(millisUntilFinished: Long) {}
-                override fun onFinish() {
-                    binding.refreshLayout!!.isRefreshing = false
-                }
-            }.start()
+            tryFetchRemote(true)
         }
+    }
+
+    private fun setUploading(uploading: Boolean) {
+        try {
+            binding.progressUpload.visibility = if (uploading) View.VISIBLE else View.GONE
+            binding.btnPost.isEnabled = !uploading
+            binding.btnPost.alpha = if (uploading) 0.5f else 1.0f
+        } catch (_: Exception) { }
+    }
+
+    private fun showToast(msg: String) {
+        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
     }
 
     private fun playCurVideo(position: Int) {
@@ -123,6 +254,25 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
         val controllerView: ControllerView = rootView.findViewById(R.id.controller)
         val ivPlay = rootView.findViewById<ImageView>(R.id.iv_play)
         val ivCover = rootView.findViewById<ImageView>(R.id.iv_cover)
+
+        // 如果是照片内容，不进行视频播放，直接显示封面
+        val bean = adapter!!.getDatas()[position]
+        if (bean.isPhoto) {
+            // 确保封面显示
+            ivCover.visibility = View.VISIBLE
+            // 将照片加载为封面
+            try {
+                Glide.with(this).load(Uri.parse(bean.videoRes)).into(ivCover)
+            } catch (_: Exception) {}
+            // 隐藏/移除 videoView 以避免叠加
+            videoView?.parent?.let {
+                (it as ViewGroup).removeView(videoView)
+            }
+            curPlayPos = position
+            likeShareEvent(controllerView)
+            RxBus.getDefault().post(CurUserBean(bean.userBean!!))
+            return
+        }
 
         //播放暂停事件
         likeView.setOnPlayPauseListener(object: LikeView.OnPlayPauseListener {
@@ -212,5 +362,53 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
                 ShareDialog().show(childFragmentManager, "")
             }
         })
+    }
+
+    private fun tryFetchRemote(fromRefresh: Boolean = false) {
+        // fetch latest posts from Firestore and prepend to local list
+        try {
+            // Use reflection-free direct call to our Firebase repo in a coroutine
+            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val posts = com.bytedance.tiktok.utils.FirebaseFeedRepository.fetchLatest()
+                    if (posts.isNotEmpty()) {
+                        val mapped = posts.map { post ->
+                            VideoBean().apply {
+                                videoId = post.id.hashCode()
+                                videoRes = post.mediaUrl
+                                isPhoto = post.isPhoto
+                                userBean = DataCreate.userList.firstOrNull() ?: VideoBean.UserBean().apply {
+                                    uid = 999
+                                    nickName = "User"
+                                    head = com.bytedance.tiktok.R.mipmap.head1
+                                }
+                                content = post.content
+                            }
+                        }
+                        // Prepend remote posts
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            val merged = ArrayList<VideoBean>()
+                            merged.addAll(mapped)
+                            merged.addAll(DataCreate.datas)
+                            DataCreate.datas = merged
+                            adapter?.submitList(ArrayList<VideoBean>().apply { addAll(DataCreate.datas) })
+                            if (fromRefresh) binding.refreshLayout.isRefreshing = false
+                        }
+                    } else if (fromRefresh) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            binding.refreshLayout.isRefreshing = false
+                        }
+                    }
+                } catch (_: Exception) {
+                    if (fromRefresh) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            binding.refreshLayout.isRefreshing = false
+                        }
+                    }
+                }
+            }
+        } catch (_: Throwable) {
+            if (fromRefresh) binding.refreshLayout.isRefreshing = false
+        }
     }
 }

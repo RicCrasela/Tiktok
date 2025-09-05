@@ -1,6 +1,7 @@
 package com.bytedance.tiktok.view
 
 import android.content.Context
+import android.net.Uri
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
@@ -11,6 +12,7 @@ import android.widget.RelativeLayout
 import com.bytedance.tiktok.R
 import com.bytedance.tiktok.bean.VideoBean
 import com.bytedance.tiktok.databinding.ViewControllerBinding
+import com.bytedance.tiktok.tiktok.TikTokShareManager
 import com.bytedance.tiktok.utils.AutoLinkHerfManager
 import com.bytedance.tiktok.utils.NumUtils
 import com.bytedance.tiktok.utils.OnVideoControllerListener
@@ -35,6 +37,8 @@ class ControllerView @JvmOverloads constructor(context: Context, attrs: Attribut
         binding.ivShare!!.setOnClickListener(this)
         binding.rlLike!!.setOnClickListener(this)
         binding.ivFocus!!.setOnClickListener(this)
+        // New: Share to TikTok button
+        binding.btnShareTikTok?.setOnClickListener(this)
         setRotateAnim()
     }
 
@@ -80,6 +84,16 @@ class ControllerView @JvmOverloads constructor(context: Context, attrs: Attribut
             }
             R.id.ivComment -> listener!!.onCommentClick()
             R.id.ivShare -> listener!!.onShareClick()
+            R.id.btnShareTikTok -> {
+                // Share current video to TikTok. If it's a remote URL, download to cache first for reliable sharing.
+                videoData?.videoRes?.let { url ->
+                    if (url.startsWith("http")) {
+                        TikTokShareManager.shareVideoUrl(context, url)
+                    } else {
+                        TikTokShareManager.shareVideo(context, Uri.parse(url))
+                    }
+                }
+            }
             R.id.ivFocus -> if (!videoData!!.isFocused) {
                 videoData!!.isLiked = true
                 binding.ivFocus!!.visibility = GONE
