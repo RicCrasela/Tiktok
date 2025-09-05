@@ -141,6 +141,16 @@
             android:layout_marginTop="-5dp"
             android:textColor="@color/white"/>
 
+        <!-- New: Share to TikTok button -->
+        <TextView
+            android:id="@+id/btnShareTikTok"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Share TikTok"
+            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:layout_marginTop="10dp"/>
+
         <RelativeLayout
             android:id="@+id/rlRecord"
             android:layout_width="wrap_content"
