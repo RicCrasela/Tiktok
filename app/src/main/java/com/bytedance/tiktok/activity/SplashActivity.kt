@@ -1,7 +1,6 @@
 package com.bytedance.tiktok.activity
 
 import android.content.Intent
-import android.net.Uri
 import android.os.CountDownTimer
 import android.widget.Toast
 import com.bytedance.tiktok.BuildConfig
@@ -32,11 +31,11 @@ class SplashActivity : BaseBindingActivity<ActivitySplashBinding>({ActivitySplas
             }
         }.start()
 
-        // Optional: Example of starting TikTok login flow when long-pressing the splash root (for demo)
-        binding.root.setOnLongClickListener {
+        // Explicit TikTok login button
+        binding.btnLoginTikTok?.setOnClickListener {
             if (!hasKey) {
                 Toast.makeText(this, "Isi TIKTOK_API_KEY di gradle.properties terlebih dahulu.", Toast.LENGTH_SHORT).show()
-                return@setOnLongClickListener true
+                return@setOnClickListener
             }
             val redirect = "com.bytedance.tiktok://tiktok-auth"
             TikTokAuthManager.startLogin(this, redirect, listener = object : TikTokAuthManager.AuthListener {
@@ -52,7 +51,6 @@ class SplashActivity : BaseBindingActivity<ActivitySplashBinding>({ActivitySplas
                     Toast.makeText(this@SplashActivity, "TikTok auth canceled", Toast.LENGTH_SHORT).show()
                 }
             })
-            true
         }
     }
 }
