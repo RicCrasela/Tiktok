@@ -94,6 +94,10 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
         binding.btnPost.setOnClickListener {
             openMediaPicker()
         }
+
+        // Optional: on first load, try to fetch latest posts from Firestore and prepend
+        // We will not block UI if Firebase not configured.
+        tryFetchRemote()
     }
 
     private fun openMediaPicker() {
@@ -187,12 +191,7 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
     private fun setRefreshEvent() {
         binding.refreshLayout.setColorSchemeResources(R.color.color_link)
         binding.refreshLayout.setOnRefreshListener {
-            object : CountDownTimer(1000, 1000) {
-                override fun onTick(millisUntilFinished: Long) {}
-                override fun onFinish() {
-                    binding.refreshLayout!!.isRefreshing = false
-                }
-            }.start()
+            tryFetchRemote(true)
         }
     }
 
@@ -314,5 +313,53 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
                 ShareDialog().show(childFragmentManager, "")
             }
         })
+    }
+
+    private fun tryFetchRemote(fromRefresh: Boolean = false) {
+        // fetch latest posts from Firestore and prepend to local list
+        try {
+            // Use reflection-free direct call to our Firebase repo in a coroutine
+            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val posts = com.bytedance.tiktok.utils.FirebaseFeedRepository.fetchLatest()
+                    if (posts.isNotEmpty()) {
+                        val mapped = posts.map { post ->
+                            VideoBean().apply {
+                                videoId = post.id.hashCode()
+                                videoRes = post.mediaUrl
+                                isPhoto = post.isPhoto
+                                userBean = DataCreate.userList.firstOrNull() ?: VideoBean.UserBean().apply {
+                                    uid = 999
+                                    nickName = "User"
+                                    head = com.bytedance.tiktok.R.mipmap.head1
+                                }
+                                content = post.content
+                            }
+                        }
+                        // Prepend remote posts
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            val merged = ArrayList<VideoBean>()
+                            merged.addAll(mapped)
+                            merged.addAll(DataCreate.datas)
+                            DataCreate.datas = merged
+                            adapter?.submitList(ArrayList<VideoBean>().apply { addAll(DataCreate.datas) })
+                            if (fromRefresh) binding.refreshLayout.isRefreshing = false
+                        }
+                    } else if (fromRefresh) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            binding.refreshLayout.isRefreshing = false
+                        }
+                    }
+                } catch (_: Exception) {
+                    if (fromRefresh) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            binding.refreshLayout.isRefreshing = false
+                        }
+                    }
+                }
+            }
+        } catch (_: Throwable) {
+            if (fromRefresh) binding.refreshLayout.isRefreshing = false
+        }
     }
 }

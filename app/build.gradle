@@ -3,6 +3,7 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'kotlin-kapt'
     id 'kotlin-android'
+    id 'com.google.gms.google-services'
 }
 
 //apply from: 'and_res_guard.gradle'
@@ -52,6 +53,11 @@ android {
 }
 
 dependencies {
+    implementation platform('com.google.firebase:firebase-bom:33.2.0')
+    implementation 'com.google.firebase:firebase-auth-ktx'
+    implementation 'com.google.firebase:firebase-firestore-ktx'
+    implementation 'com.google.firebase:firebase-storage-ktx'
+
     implementation rootProject.ext.androisxLibs
     implementation rootProject.ext.immersionbar.immersionbar
     implementation rootProject.ext.tablayout.tablayout
