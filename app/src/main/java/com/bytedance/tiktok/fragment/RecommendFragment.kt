@@ -64,19 +64,50 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
                 val isPhoto = type.startsWith("image/")
                 val cachedFile = copyToCache(uri)
                 if (cachedFile != null) {
-                    val bean = VideoBean().apply {
-                        videoId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
-                        videoRes = cachedFile.toURI().toString()
-                        this.isPhoto = isPhoto
-                        userBean = DataCreate.user  // reuse current user if available
-                        content = if (isPhoto) "Photo post" else "Video post"
-                        likeCount = 0
-                        commentCount = 0
-                        shareCount = 0
+                    // Upload to Firebase and then refresh feed
+                    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            val post = com.bytedance.tiktok.utils.FirebaseUploadRepository.uploadPost(Uri.fromFile(cachedFile), isPhoto, if (isPhoto) "Photo post" else "Video post")
+                            // Map to local bean and insert at top
+                            val bean = VideoBean().apply {
+                                videoId = post.id.hashCode()
+                                videoRes = post.mediaUrl
+                                this.isPhoto = post.isPhoto
+                                userBean = DataCreate.userList.firstOrNull() ?: VideoBean.UserBean().apply {
+                                    uid = 999
+                                    nickName = "User"
+                                    head = com.bytedance.tiktok.R.mipmap.head1
+                                }
+                                content = post.content
+                                likeCount = 0
+                                commentCount = 0
+                                shareCount = 0
+                            }
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                DataCreate.datas.add(0, bean)
+                                adapter?.submitList(mutableListOf<VideoBean>().apply { addAll(DataCreate.datas) })
+                                binding.recyclerView.setCurrentItem(0, false)
+                            }
+                        } catch (_: Exception) {
+                            // On failure fallback to local add
+                            val bean = VideoBean().apply {
+                                videoId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+                                videoRes = cachedFile.toURI().toString()
+                                this.isPhoto = isPhoto
+                                userBean = DataCreate.userList.firstOrNull() ?: VideoBean.UserBean().apply {
+                                    uid = 999
+                                    nickName = "User"
+                                    head = com.bytedance.tiktok.R.mipmap.head1
+                                }
+                                content = if (isPhoto) "Photo post" else "Video post"
+                            }
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                DataCreate.datas.add(0, bean)
+                                adapter?.submitList(mutableListOf<VideoBean>().apply { addAll(DataCreate.datas) })
+                                binding.recyclerView.setCurrentItem(0, false)
+                            }
+                        }
                     }
-                    DataCreate.datas.add(0, bean)
-                    adapter?.submitList(mutableListOf<VideoBean>().apply { addAll(DataCreate.datas) })
-                    binding.recyclerView.setCurrentItem(0, false)
                 }
             }
         }
