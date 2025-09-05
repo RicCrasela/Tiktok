@@ -36,5 +36,16 @@
             android:layout_alignParentEnd="true"
             android:layout_alignParentBottom="true"
             android:layout_margin="16dp"/>
+
+        <!-- Upload progress indicator -->
+        <ProgressBar
+            android:id="@+id/progressUpload"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignTop="@id/btnPost"
+            android:layout_toStartOf="@id/btnPost"
+            android:layout_marginEnd="12dp"
+            android:visibility="gone"/>
     </RelativeLayout>
 </layout>

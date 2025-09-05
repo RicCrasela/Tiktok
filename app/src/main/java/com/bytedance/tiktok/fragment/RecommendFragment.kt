@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.RelativeLayout.LayoutParams
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -64,6 +65,7 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
                 val isPhoto = type.startsWith("image/")
                 val cachedFile = copyToCache(uri)
                 if (cachedFile != null) {
+                    setUploading(true)
                     // Upload to Firebase and then refresh feed
                     kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         try {
@@ -87,6 +89,8 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
                                 DataCreate.datas.add(0, bean)
                                 adapter?.submitList(mutableListOf<VideoBean>().apply { addAll(DataCreate.datas) })
                                 binding.recyclerView.setCurrentItem(0, false)
+                                showToast("Upload selesai")
+                                setUploading(false)
                             }
                         } catch (_: Exception) {
                             // On failure fallback to local add
@@ -105,6 +109,8 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
                                 DataCreate.datas.add(0, bean)
                                 adapter?.submitList(mutableListOf<VideoBean>().apply { addAll(DataCreate.datas) })
                                 binding.recyclerView.setCurrentItem(0, false)
+                                showToast("Upload gagal, ditambahkan lokal")
+                                setUploading(false)
                             }
                         }
                     }
@@ -224,6 +230,18 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
         binding.refreshLayout.setOnRefreshListener {
             tryFetchRemote(true)
         }
+    }
+
+    private fun setUploading(uploading: Boolean) {
+        try {
+            binding.progressUpload.visibility = if (uploading) View.VISIBLE else View.GONE
+            binding.btnPost.isEnabled = !uploading
+            binding.btnPost.alpha = if (uploading) 0.5f else 1.0f
+        } catch (_: Exception) { }
+    }
+
+    private fun showToast(msg: String) {
+        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
     }
 
     private fun playCurVideo(position: Int) {
