@@ -59,6 +59,8 @@ dependencies {
     implementation rootProject.ext.lottile.lottile
     implementation rootProject.ext.glide.glide
     implementation rootProject.ext.exoplayerLibs
+    // Networking for share-to-TikTok download
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
     debugImplementation rootProject.ext.leakcanary.leakcanary
 }
 
