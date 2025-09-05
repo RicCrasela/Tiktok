@@ -60,6 +60,17 @@
             </intent-filter>
         </activity>
 
+        <!-- FileProvider for sharing cached videos -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Query for TikTok app for sharing (Android 11+ package visibility) -->
         <queries>
             <package android:name="com.zhiliaoapp.musically" />

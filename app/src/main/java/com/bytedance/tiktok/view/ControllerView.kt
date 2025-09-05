@@ -85,10 +85,13 @@ class ControllerView @JvmOverloads constructor(context: Context, attrs: Attribut
             R.id.ivComment -> listener!!.onCommentClick()
             R.id.ivShare -> listener!!.onShareClick()
             R.id.btnShareTikTok -> {
-                // Attempt to share current video url to TikTok
+                // Share current video to TikTok. If it's a remote URL, download to cache first for reliable sharing.
                 videoData?.videoRes?.let { url ->
-                    // This assumes videoRes is a url string. For local files, provide content Uri via FileProvider.
-                    TikTokShareManager.shareVideo(context, Uri.parse(url))
+                    if (url.startsWith("http")) {
+                        TikTokShareManager.shareVideoUrl(context, url)
+                    } else {
+                        TikTokShareManager.shareVideo(context, Uri.parse(url))
+                    }
                 }
             }
             R.id.ivFocus -> if (!videoData!!.isFocused) {
