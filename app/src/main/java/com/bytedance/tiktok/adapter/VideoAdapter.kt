@@ -35,24 +35,35 @@ class VideoAdapter(val context: Context, val recyclerView: RecyclerView): BaseAd
     }
 
     override fun onBindViewHolder(holder: VideoViewHolder, position: Int) {
-        mList[position]?.let {
-            holder.binding.controller.setVideoData(it)
-            Glide.with(context)
-                .asBitmap()
-                .load(it.videoRes)
-                .apply(RequestOptions.frameOf(0))  // 从第一帧开始
-                .into(holder.binding.ivCover)
-            holder?.binding?.likeview?.setOnLikeListener(object : OnLikeListener {
+        mList[position]?.let { bean ->
+            holder.binding.controller.setVideoData(bean)
+            // Load cover: for video, load first frame; for photo, load image
+            if (bean.isPhoto) {
+                Glide.with(context)
+                    .load(bean.videoRes)
+                    .into(holder.binding.ivCover)
+            } else {
+                Glide.with(context)
+                    .asBitmap()
+                    .load(bean.videoRes)
+                    .apply(RequestOptions.frameOf(0))  // 从第一帧开始
+                    .into(holder.binding.ivCover)
+            }
+            holder.binding.likeview?.setOnLikeListener(object : OnLikeListener {
                 override fun onLikeListener() {
-                    if (!it.isLiked) {  //未点赞，会有点赞效果，否则无
-                        holder?.binding?.controller!!.like()
+                    if (!bean.isLiked) {  //未点赞，会有点赞效果，否则无
+                        holder.binding.controller!!.like()
                     }
                 }
             })
             holder.binding.ivPlay.alpha = 0.4f
         }
-        //利用预加item，提前加载缓存资源
-        mList[position].mediaSource = buildMediaSource(mList[position].videoRes)
+        // Prebuild media source only for videos
+        if (!mList[position].isPhoto) {
+            mList[position].mediaSource = buildMediaSource(mList[position].videoRes)
+        } else {
+            mList[position].mediaSource = null
+        }
     }
 
     /**
@@ -100,7 +111,7 @@ class VideoDiff: DiffUtil.ItemCallback<VideoBean>() {
     }
 
     override fun areContentsTheSame(oldItem: VideoBean, newItem: VideoBean): Boolean {
-        return (oldItem.videoRes == newItem.videoRes && oldItem.userBean!!.uid == newItem.userBean!!.uid)
+        return (oldItem.videoRes == newItem.videoRes && oldItem.userBean!!.uid == newItem.userBean!!.uid && oldItem.isPhoto == newItem.isPhoto)
     }
 
 }

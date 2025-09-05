@@ -1,14 +1,21 @@
 package com.bytedance.tiktok.fragment
 
+import android.app.Activity
+import android.content.ContentResolver
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.provider.OpenableColumns
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.RelativeLayout.LayoutParams
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
+import com.bumptech.glide.Glide
 import com.bytedance.tiktok.R
 import com.bytedance.tiktok.activity.PlayListActivity
 import com.bytedance.tiktok.adapter.VideoAdapter
@@ -17,18 +24,21 @@ import com.bytedance.tiktok.bean.CurUserBean
 import com.bytedance.tiktok.bean.DataCreate
 import com.bytedance.tiktok.bean.MainPageChangeEvent
 import com.bytedance.tiktok.bean.PauseVideoEvent
+import com.bytedance.tiktok.bean.VideoBean
 import com.bytedance.tiktok.databinding.FragmentRecommendBinding
+import com.bytedance.tiktok.player.VideoPlayer
 import com.bytedance.tiktok.utils.OnVideoControllerListener
 import com.bytedance.tiktok.utils.RxBus
 import com.bytedance.tiktok.view.CommentDialog
 import com.bytedance.tiktok.view.ControllerView
-import com.bytedance.tiktok.player.VideoPlayer
 import com.bytedance.tiktok.view.LikeView
 import com.bytedance.tiktok.view.ShareDialog
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
 import rx.Subscription
 import rx.functions.Action1
+import java.io.File
+import java.io.FileOutputStream
 
 
 /**
@@ -46,6 +56,32 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
     private var ivCurCover: ImageView? = null
     private var subscribe: Subscription?= null
 
+    private val pickMedia = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val dataUri: Uri? = result.data?.data
+            dataUri?.let { uri ->
+                val type = requireContext().contentResolver.getType(uri) ?: ""
+                val isPhoto = type.startsWith("image/")
+                val cachedFile = copyToCache(uri)
+                if (cachedFile != null) {
+                    val bean = VideoBean().apply {
+                        videoId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+                        videoRes = cachedFile.toURI().toString()
+                        this.isPhoto = isPhoto
+                        userBean = DataCreate.user  // reuse current user if available
+                        content = if (isPhoto) "Photo post" else "Video post"
+                        likeCount = 0
+                        commentCount = 0
+                        shareCount = 0
+                    }
+                    DataCreate.datas.add(0, bean)
+                    adapter?.submitList(mutableListOf<VideoBean>().apply { addAll(DataCreate.datas) })
+                    binding.recyclerView.setCurrentItem(0, false)
+                }
+            }
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -54,6 +90,53 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
         setViewPagerLayoutManager()
         setRefreshEvent()
         observeEvent()
+
+        binding.btnPost.setOnClickListener {
+            openMediaPicker()
+        }
+    }
+
+    private fun openMediaPicker() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*","video/*"))
+        }
+        pickMedia.launch(intent)
+    }
+
+    private fun copyToCache(uri: Uri): File? {
+        return try {
+            val cr: ContentResolver = requireContext().contentResolver
+            val name = queryDisplayName(uri) ?: "post_${System.currentTimeMillis()}"
+            val ext = when {
+                name.contains('.', ignoreCase = true) -> name.substring(name.lastIndexOf('.'))
+                (cr.getType(uri) ?: "").startsWith("image/") -> ".jpg"
+                (cr.getType(uri) ?: "").startsWith("video/") -> ".mp4"
+                else -> ""
+            }
+            val outFile = File(requireContext().cacheDir, "post_${System.currentTimeMillis()}$ext")
+            cr.openInputStream(uri)?.use { input ->
+                FileOutputStream(outFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            outFile
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun queryDisplayName(uri: Uri): String? {
+        val cr = requireContext().contentResolver
+        val cursor = cr.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val idx = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (idx >= 0) return it.getString(idx)
+            }
+        }
+        return null
     }
 
     private fun initRecyclerView() {
@@ -123,6 +206,25 @@ class RecommendFragment : BaseBindingFragment<FragmentRecommendBinding>({Fragmen
         val controllerView: ControllerView = rootView.findViewById(R.id.controller)
         val ivPlay = rootView.findViewById<ImageView>(R.id.iv_play)
         val ivCover = rootView.findViewById<ImageView>(R.id.iv_cover)
+
+        // 如果是照片内容，不进行视频播放，直接显示封面
+        val bean = adapter!!.getDatas()[position]
+        if (bean.isPhoto) {
+            // 确保封面显示
+            ivCover.visibility = View.VISIBLE
+            // 将照片加载为封面
+            try {
+                Glide.with(this).load(Uri.parse(bean.videoRes)).into(ivCover)
+            } catch (_: Exception) {}
+            // 隐藏/移除 videoView 以避免叠加
+            videoView?.parent?.let {
+                (it as ViewGroup).removeView(videoView)
+            }
+            curPlayPos = position
+            likeShareEvent(controllerView)
+            RxBus.getDefault().post(CurUserBean(bean.userBean!!))
+            return
+        }
 
         //播放暂停事件
         likeView.setOnPlayPauseListener(object: LikeView.OnPlayPauseListener {
