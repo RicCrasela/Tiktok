@@ -85,3 +85,26 @@
    val apiKey = BuildConfig.TIKTOK_API_KEY
 
 提示：当前默认值是占位符 __REPLACE_WITH_YOUR_TIKTOK_API_KEY__，请在本地替换为真实值。
+
+---
+
+Build & Install cepat (skrip)
+
+Kami menyediakan skrip untuk membangun dan memasang APK ke perangkat, serta (opsional) membangun AAB:
+
+- Izin eksekusi:
+  chmod +x scripts/build_and_install.sh
+
+- Penggunaan dasar (build+install debug):
+  ./scripts/build_and_install.sh
+
+- Argumen opsional:
+  --variant debug|release     memilih varian build (default: debug)
+  --package com.example.app    override packageName saat meluncurkan app (jika tidak diisi, skrip auto-deteksi dari AndroidManifest.xml)
+  --skip-clean                 lewati langkah clean
+  --aab                        juga membangun App Bundle (.aab) untuk Play Store
+
+- Contoh:
+  ./scripts/build_and_install.sh --variant release
+  ./scripts/build_and_install.sh --aab --variant release
+  ./scripts/build_and_install.sh --package com.mycompany.myapp --skip-clean
