@@ -7,14 +7,15 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.bytedance.tiktok.databinding.ActivityLiveStreamBinding
 import com.gyf.immersionbar.ImmersionBar
-import com.pedro.rtplibrary.rtmp.RtmpCamera2
 import com.pedro.encoder.input.video.CameraHelper
+import com.pedro.rtplibrary.rtmp.RtmpCamera2
+import com.pedro.rtmp.utils.ConnectCheckerRtmp
 
 /**
  * Live streaming publisher using RootEncoder (rtmp-rtsp-stream-client-java successor).
  * Features: start/stop stream, switch camera, mute/unmute mic.
  */
-class LiveStreamActivity : AppCompatActivity() {
+class LiveStreamActivity : AppCompatActivity(), ConnectCheckerRtmp {
 
     private lateinit var binding: ActivityLiveStreamBinding
     private lateinit var rtmpCamera2: RtmpCamera2
@@ -100,4 +101,49 @@ class LiveStreamActivity : AppCompatActivity() {
             rtmpCamera2.stopPreview()
         }
     }
+
+    // region ConnectCheckerRtmp callbacks
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {
+        runOnUiThread {
+            binding.status.text = "Connecting..."
+        }
+    }
+
+    override fun onConnectionSuccessRtmp() {
+        runOnUiThread {
+            binding.status.text = "Live"
+        }
+    }
+
+    override fun onConnectionFailedRtmp(reason: String) {
+        runOnUiThread {
+            Toast.makeText(this, "Koneksi gagal: $reason", Toast.LENGTH_SHORT).show()
+            updateUiState()
+        }
+        rtmpCamera2.stopStream()
+    }
+
+    override fun onNewBitrateRtmp(bitrate: Long) {
+        // Optional: update UI with bitrate
+    }
+
+    override fun onDisconnectRtmp() {
+        runOnUiThread {
+            binding.status.text = "Idle"
+            updateUiState()
+        }
+    }
+
+    override fun onAuthErrorRtmp() {
+        runOnUiThread {
+            Toast.makeText(this, "Autentikasi gagal", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onAuthSuccessRtmp() {
+        runOnUiThread {
+            Toast.makeText(this, "Autentikasi sukses", Toast.LENGTH_SHORT).show()
+        }
+    }
+    // endregion
 }
