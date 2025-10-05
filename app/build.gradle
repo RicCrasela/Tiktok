@@ -58,5 +58,8 @@ dependencies {
 
     // Live streaming (RTMP/RTSP) client library
     implementation 'com.github.pedroSG94:rtmp-rtsp-stream-client-java:2.1.5'
+
+    // Realtime chat via WebSocket
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }
 

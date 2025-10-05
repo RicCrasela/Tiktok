@@ -17,12 +17,15 @@ import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.database.StandaloneDatabaseProvider
 import com.google.android.exoplayer2.source.BaseMediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
+import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.trackselection.TrackSelector
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource
 import com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor
 import com.google.android.exoplayer2.upstream.cache.SimpleCache
+import com.google.android.exoplayer2.upstream.DataSource
+import com.google.android.exoplayer2.source.MediaSource
 
 /**
  * create by libo
@@ -118,10 +121,28 @@ class VideoPlayer @JvmOverloads constructor(context: Context, attrs: AttributeSe
         if (TextUtils.isEmpty(url)) {
             return
         }
-        val mediaItem = MediaItem.fromUri(url)
-        val dataSourceFactory = CacheDataSource.Factory().setCache(cache).setUpstreamDataSourceFactory(
-            DefaultDataSource.Factory(context))
-        val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+        val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(context)
+        val mediaSource: MediaSource = when {
+            url.startsWith("rtmp://") -> {
+                // Use RTMP extension if dependency added in config.gradle
+                val rtmpFactoryClass = try {
+                    Class.forName("com.google.android.exoplayer2.ext.rtmp.RtmpDataSourceFactory")
+                } catch (e: Exception) { null }
+                if (rtmpFactoryClass != null) {
+                    val rtmpFactory = rtmpFactoryClass.getDeclaredConstructor().newInstance() as DataSource.Factory
+                    ProgressiveMediaSource.Factory(rtmpFactory).createMediaSource(MediaItem.fromUri(url))
+                } else {
+                    ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(url))
+                }
+            }
+            url.endsWith(".m3u8") -> {
+                HlsMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(url))
+            }
+            else -> {
+                val cacheFactory = CacheDataSource.Factory().setCache(cache).setUpstreamDataSourceFactory(dataSourceFactory)
+                ProgressiveMediaSource.Factory(cacheFactory).createMediaSource(MediaItem.fromUri(url))
+            }
+        }
         mPlayer.setMediaSource(mediaSource)
         mPlayer.prepare()
         mPlayer.play()

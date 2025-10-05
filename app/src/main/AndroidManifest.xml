@@ -52,6 +52,11 @@
             android:name=".activity.LiveStreamActivity"
             android:exported="false"
             android:screenOrientation="portrait"/>
+
+        <activity
+            android:name=".activity.LivePlayActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"/>
     </application>
 
 </manifest>

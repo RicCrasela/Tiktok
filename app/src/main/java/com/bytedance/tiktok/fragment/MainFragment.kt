@@ -21,6 +21,7 @@ import java.util.*
 class MainFragment : BaseBindingFragment<FragmentMainBinding>({FragmentMainBinding.inflate(it)}) {
     private var currentLocationFragment: CurrentLocationFragment? = null
     private var recommendFragment: RecommendFragment? = null
+    private var liveListFragment: LiveListFragment? = null
 
     private val fragments = ArrayList<Fragment>()
     private var pagerAdapter: CommPagerAdapter? = null
@@ -40,11 +41,14 @@ class MainFragment : BaseBindingFragment<FragmentMainBinding>({FragmentMainBindi
     private fun setFragments() {
         currentLocationFragment = CurrentLocationFragment()
         recommendFragment = RecommendFragment()
+        liveListFragment = LiveListFragment()
         fragments.add(currentLocationFragment!!)
         fragments.add(recommendFragment!!)
+        fragments.add(liveListFragment!!)
         binding.tabTitle!!.addTab(binding.tabTitle!!.newTab().setText("海淀"))
         binding.tabTitle!!.addTab(binding.tabTitle!!.newTab().setText("推荐"))
-        pagerAdapter = CommPagerAdapter(childFragmentManager, fragments, arrayOf("海淀", "推荐"))
+        binding.tabTitle!!.addTab(binding.tabTitle!!.newTab().setText("直播"))
+        pagerAdapter = CommPagerAdapter(childFragmentManager, fragments, arrayOf("海淀", "推荐", "直播"))
         binding.viewPager!!.adapter = pagerAdapter
         binding.tabTitle!!.setupWithViewPager(binding.viewPager)
         binding.tabTitle!!.getTabAt(1)!!.select()
