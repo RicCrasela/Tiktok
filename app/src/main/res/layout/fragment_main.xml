@@ -66,9 +66,11 @@
             android:background="@color/black" />
 
         <ImageView
+            android:id="@+id/ivLive"
             android:layout_width="50dp"
             android:layout_height="35dp"
             android:background="@mipmap/ic_main_menu"
+            android:contentDescription="@string/app_name"
             android:layout_centerInParent="true"/>
     </RelativeLayout>
 

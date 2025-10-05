@@ -1,9 +1,11 @@
 package com.bytedance.tiktok.fragment
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.viewpager.widget.ViewPager.OnPageChangeListener
+import com.bytedance.tiktok.activity.LiveStreamActivity
 import com.bytedance.tiktok.base.BaseBindingFragment
 import com.bytedance.tiktok.base.CommPagerAdapter
 import com.bytedance.tiktok.bean.PauseVideoEvent
@@ -28,6 +30,11 @@ class MainFragment : BaseBindingFragment<FragmentMainBinding>({FragmentMainBindi
 
         setFragments()
         setMainMenu()
+
+        // Center plus button -> open Live streaming
+        binding.ivLive.setOnClickListener {
+            startActivity(Intent(requireContext(), LiveStreamActivity::class.java))
+        }
     }
 
     private fun setFragments() {

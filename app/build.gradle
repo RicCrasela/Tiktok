@@ -55,5 +55,8 @@ dependencies {
     implementation rootProject.ext.glide.glide
     implementation rootProject.ext.exoplayerLibs
     debugImplementation rootProject.ext.leakcanary.leakcanary
+
+    // Live streaming (RTMP/RTSP) client library
+    implementation 'com.github.pedroSG94:rtmp-rtsp-stream-client-java:2.1.5'
 }
 
