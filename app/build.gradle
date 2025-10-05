@@ -19,8 +19,9 @@ android {
     }
     buildTypes {
         debug {
-            minifyEnabled true
-            shrinkResources true //强力删除无用资源，不打包进apk，需配合minifyEnabled一起使用
+            // Easier debugging: disable code shrinking/obfuscation
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
