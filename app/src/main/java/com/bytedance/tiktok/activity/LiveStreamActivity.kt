@@ -27,7 +27,6 @@ class LiveStreamActivity : AppCompatActivity() {
         ImmersionBar.with(this).statusBarDarkFont(true).init()
 
         rtmpCamera2 = RtmpCamera2(binding.surfaceView, this)
-        rtmpCamera2.setAuthorization(null, null)
 
         binding.btnStart.setOnClickListener {
             val url = binding.editRtmpUrl.text?.toString() ?: ""
@@ -36,7 +35,9 @@ class LiveStreamActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             if (!rtmpCamera2.isStreaming) {
-                if (rtmpCamera2.prepareAudio() && rtmpCamera2.prepareVideo()) {
+                val audioPrepared = if (hasAudio) rtmpCamera2.prepareAudio() else true
+                val videoPrepared = rtmpCamera2.prepareVideo()
+                if (audioPrepared && videoPrepared) {
                     rtmpCamera2.startStream(url)
                     updateUiState()
                 } else {
@@ -60,7 +61,13 @@ class LiveStreamActivity : AppCompatActivity() {
 
         binding.btnMic.setOnClickListener {
             hasAudio = !hasAudio
-            rtmpCamera2.setAudioEnable(hasAudio)
+            if (rtmpCamera2.isStreaming) {
+                if (hasAudio) {
+                    rtmpCamera2.enableAudio()
+                } else {
+                    rtmpCamera2.disableAudio()
+                }
+            }
             binding.btnMic.text = if (hasAudio) "Mute" else "Unmute"
         }
 

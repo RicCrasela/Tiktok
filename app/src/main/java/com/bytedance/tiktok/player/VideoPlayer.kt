@@ -15,6 +15,7 @@ import com.google.android.exoplayer2.DefaultLoadControl
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.database.StandaloneDatabaseProvider
 import com.google.android.exoplayer2.source.BaseMediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
@@ -140,7 +141,7 @@ class VideoPlayer @JvmOverloads constructor(context: Context, attrs: AttributeSe
         mPlayer.play()
     }
 
-    override fun getplayer(): SimpleExoPlayer {
+    override fun getplayer(): ExoPlayer {
         return mPlayer
     }
 
