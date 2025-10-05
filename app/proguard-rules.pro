@@ -56,3 +56,5 @@
 -keep class com.sun.** {*;}
 -keep class org.apache.** {*;}
 -keep class org.json.** {*;}
+# Keep RootEncoder (rtmp) streaming library classes
+-keep class com.pedro.** {*;}

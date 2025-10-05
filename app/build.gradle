@@ -19,8 +19,8 @@ android {
     }
     buildTypes {
         debug {
-            minifyEnabled true
-            shrinkResources true //强力删除无用资源，不打包进apk，需配合minifyEnabled一起使用
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
@@ -55,5 +55,8 @@ dependencies {
     implementation rootProject.ext.glide.glide
     implementation rootProject.ext.exoplayerLibs
     debugImplementation rootProject.ext.leakcanary.leakcanary
+
+    // Live streaming (RTMP publisher) - use original library to avoid JitPack resolution issues
+    implementation "com.github.pedroSG94:rtmp-rtsp-stream-client-java:2.3.3"
 }
 
