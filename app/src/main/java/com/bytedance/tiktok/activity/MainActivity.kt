@@ -1,9 +1,9 @@
 package com.bytedance.tiktok.activity
 
+import android.content.Intent
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.viewpager.widget.ViewPager.OnPageChangeListener
-import com.bytedance.tiktok.R
 import com.bytedance.tiktok.base.BaseBindingActivity
 import com.bytedance.tiktok.base.CommPagerAdapter
 import com.bytedance.tiktok.bean.MainPageChangeEvent
@@ -13,7 +13,6 @@ import com.bytedance.tiktok.fragment.MainFragment
 import com.bytedance.tiktok.fragment.PersonalHomeFragment
 import com.bytedance.tiktok.utils.RxBus
 import rx.functions.Action1
-import java.util.*
 
 /**
  * create by libo
@@ -38,6 +37,14 @@ class MainActivity : BaseBindingActivity<ActivityMainBinding>({ActivityMainBindi
         fragments.add(personalHomeFragment)
         pagerAdapter = CommPagerAdapter(supportFragmentManager, fragments, arrayOf("", ""))
         binding.viewPager!!.adapter = pagerAdapter
+
+        // Live actions
+        binding.btnGoLive.setOnClickListener {
+            startActivity(Intent(this, LiveStreamActivity::class.java))
+        }
+        binding.btnWatchLive.setOnClickListener {
+            startActivity(Intent(this, LivePlayerActivity::class.java))
+        }
 
         //点击头像切换页面
         RxBus.getDefault().toObservable(MainPageChangeEvent::class.java)

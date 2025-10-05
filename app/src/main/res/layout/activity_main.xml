@@ -11,4 +11,27 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
+    <LinearLayout
+        android:id="@+id/liveActions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="16dp">
+
+        <Button
+            android:id="@+id/btnGoLive"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Go Live" />
+
+        <Button
+            android:id="@+id/btnWatchLive"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Watch Live"
+            android:layout_marginTop="8dp" />
+    </LinearLayout>
+
 </RelativeLayout>

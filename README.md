@@ -48,6 +48,17 @@
 
 由于没有接口获取数据，使用的方式是将图片视频资源下载放入项目中，自己构造的视频列表数据。
 
+## 新增：直播功能（RTMP）
+- 发布直播：进入 LiveStreamActivity，输入 RTMP 推流地址，点击“开始直播”，支持切换前后摄像头、静音/取消静音。
+- 观看直播：进入 LivePlayerActivity，输入 RTMP/HLS 地址即可观看（已集成 ExoPlayer RTMP 扩展）。
+
+示例 RTMP 地址：
+- `rtmp://your-server/live/streamKey`（可使用 Nginx-RTMP、Wowza、Ant Media、YouTube Live 等的推流入口）
+- 观看端也可使用上述 RTMP 地址或对应的 HLS URL（如服务器转换后的 `https://.../live/streamKey.m3u8`）
+
+权限：
+- 需允许摄像头与麦克风权限以及联网权限。
+
 关于抖音
 
 1.用户玩法

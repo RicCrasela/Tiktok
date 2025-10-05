@@ -1,6 +1,7 @@
 package com.bytedance.tiktok.player
 
 import android.content.Context
+import android.net.Uri
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -23,6 +24,7 @@ import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource
 import com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor
 import com.google.android.exoplayer2.upstream.cache.SimpleCache
+import com.google.android.exoplayer2.ext.rtmp.RtmpDataSourceFactory
 
 /**
  * create by libo
@@ -112,16 +114,27 @@ class VideoPlayer @JvmOverloads constructor(context: Context, attrs: AttributeSe
     }
 
     /**
-     * 根据url生成缓存，播放本地缓存
+     * 根据url生成缓存，播放本地缓存或RTMP直播
      */
     override fun playVideo(url: String) {
         if (TextUtils.isEmpty(url)) {
             return
         }
-        val mediaItem = MediaItem.fromUri(url)
-        val dataSourceFactory = CacheDataSource.Factory().setCache(cache).setUpstreamDataSourceFactory(
-            DefaultDataSource.Factory(context))
-        val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+        val uri = Uri.parse(url)
+        val mediaItem = MediaItem.fromUri(uri)
+        val isRtmp = uri.scheme?.lowercase() == "rtmp"
+
+        val mediaSource = if (isRtmp) {
+            // RTMP live playback uses RtmpDataSourceFactory (no caching)
+            ProgressiveMediaSource.Factory(RtmpDataSourceFactory()).createMediaSource(mediaItem)
+        } else {
+            // default: cached progressive playback
+            val dataSourceFactory = CacheDataSource.Factory()
+                .setCache(cache)
+                .setUpstreamDataSourceFactory(DefaultDataSource.Factory(context))
+            ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+        }
+
         mPlayer.setMediaSource(mediaSource)
         mPlayer.prepare()
         mPlayer.play()

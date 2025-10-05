@@ -55,5 +55,10 @@ dependencies {
     implementation rootProject.ext.glide.glide
     implementation rootProject.ext.exoplayerLibs
     debugImplementation rootProject.ext.leakcanary.leakcanary
+
+    // Live streaming (RTMP publisher)
+    implementation "com.github.pedroSG94.RootEncoder:library:2.6.4"
+    // Optional: CameraX/USB sources support
+    implementation "com.github.pedroSG94.RootEncoder:extra-sources:2.6.4"
 }
 
