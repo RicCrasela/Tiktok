@@ -17,16 +17,37 @@ android {
         versionName rootProject.ext.android.versionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    signingConfigs {
+        release {
+            // Read from environment variables injected by CI
+            def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+            def storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            def keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+            def keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+
+            if (keystorePath != null && storePassword != null && keyAlias != null && keyPassword != null) {
+                storeFile file(keystorePath)
+                storePassword storePassword
+                this.keyAlias keyAlias
+                this.keyPassword keyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
-            minifyEnabled true
-            shrinkResources true //强力删除无用资源，不打包进apk，需配合minifyEnabled一起使用
+            // Easier debugging: disable code shrinking/obfuscation
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Use release signing if available
+            signingConfig signingConfigs.release
         }
     }
 
@@ -55,5 +76,11 @@ dependencies {
     implementation rootProject.ext.glide.glide
     implementation rootProject.ext.exoplayerLibs
     debugImplementation rootProject.ext.leakcanary.leakcanary
+
+    // Live streaming (RTMP/RTSP) client library
+    implementation 'com.github.pedroSG94:rtmp-rtsp-stream-client-java:2.1.5'
+
+    // Realtime chat via WebSocket
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }
 
