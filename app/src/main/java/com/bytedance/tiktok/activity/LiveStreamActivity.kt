@@ -42,7 +42,9 @@ class LiveStreamActivity : BaseBindingActivity<ActivityLiveStreamBinding>({ Acti
 
         // Chat setup
         chatAdapter = ChatAdapter()
-        binding.rvChat.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
+        val lm = LinearLayoutManager(this)
+        lm.stackFromEnd = true
+        binding.rvChat.layoutManager = lm
         binding.rvChat.adapter = chatAdapter
         binding.btnSend.setOnClickListener {
             val text = binding.etMessage.text?.toString() ?: ""
